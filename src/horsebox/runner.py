@@ -9,6 +9,8 @@ from horsebox.project import make_project
 def http(configfile: pathlib.Path):
 
     project = make_project(configfile)
+    project.logger.info(
+         f'Horsebox is boostrapping your project: {project.name}')
 
     with project.environment():
         root = URLMap()
@@ -36,5 +38,5 @@ def http(configfile: pathlib.Path):
             pass
 
 
-def start():
+def serve():
     run()

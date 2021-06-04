@@ -23,7 +23,7 @@ class Project(NamedTuple):
     def environment(self):
         """Temporarily set the process environment variables.
         """
-        self.logger.info(f"Setting up environment for project {self.name}")
+        self.logger.info("... setting up environment")
         old_environ = dict(os.environ)
         os.environ.update(dict(self.environ))
         try:
@@ -34,7 +34,7 @@ class Project(NamedTuple):
 
     def scan(self):
         for module in self.modules:
-            self.logger.info(f"Scanning module {module.__name__}")
+            self.logger.info(f"... scanning module {module.__name__}")
             importscan.scan(module)
 
 
@@ -60,17 +60,17 @@ def make_project(configfile, override: OmegaConf = None):
     OmegaConf.register_resolver(
         "class", resolve.resolve)
     OmegaConf.register_resolver(
-        "component", lambda namme: components[name])
+        "component", lambda name: components[name])
 
     config = OmegaConf.load(configfile)
     if override is not None:
         config = OmegaConf.merge(config, override)
 
-    components.update(dict(iter_components(config)))
-    for name, app, modules in iter_apps(config):
+    components.update(iter_components(config.components))
+    for name, app, dependencies in iter_apps(config.apps):
         apps[name] = app
-        if modules:
-            modules.extend(modules)
+        if dependencies is not None:
+            modules.extend(dependencies)
 
     name = config.name or 'Unnamed project'
     return Project(
