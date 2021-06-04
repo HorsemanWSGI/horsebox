@@ -76,16 +76,16 @@ def make_project(configfile, override: OmegaConf = None):
     if override is not None:
         config = OmegaConf.merge(config, override)
 
-    if not OmegaConf.is_missing(config, "components"):
+    if 'components' in config:
         components.update(iter_components(config.components))
 
-    if not OmegaConf.is_missing(config, "apps"):
+    if 'apps' in config:
         for name, app, dependencies in iter_apps(config.apps):
             apps[name] = app
             if dependencies is not None:
                 modules.extend(dependencies)
 
-    if not OmegaConf.is_missing(config, "server"):
+    if 'server' in config:
         server = prepare_server(config.server)
     else:
         server = None
