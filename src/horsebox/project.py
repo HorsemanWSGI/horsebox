@@ -39,6 +39,10 @@ class Project(NamedTuple):
             importscan.scan(module)
 
     def run(self):
+        if self.server is None:
+            raise NotImplementedError(
+                f'No server defined for project {self.name}.')
+
         with self.environment():
             root = URLMap()
             for name, app in self.apps.items():
