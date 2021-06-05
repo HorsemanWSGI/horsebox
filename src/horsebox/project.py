@@ -6,19 +6,21 @@ import os
 import pathlib
 from rutter.urlmap import URLMap
 from omegaconf import OmegaConf
-from typing import NamedTuple, Callable, Optional
+from typing import Any, NamedTuple, Callable, Optional, Mapping
 from zope.dottedname import resolve
-from horsebox.parsing import iter_apps, iter_components, prepare_server
+from horsebox.types import WSGICallable, WSGIServer
+from horsebox.parsing import (
+    iter_applications, iter_components, prepare_server)
 
 
 class Project(NamedTuple):
     name: str
-    apps: dict
-    components: dict
-    environ: dict
+    apps: Mapping[str, WSGICallable]
+    components: Mapping[str, Any]
+    environ: Mapping[str, str]
     modules: list
     logger: logging.Logger
-    server: Optional[Callable]
+    server: Optional[WSGIServer]
 
     @contextlib.contextmanager
     def environment(self):
@@ -63,7 +65,7 @@ def make_logger(name, level=logging.DEBUG) -> logging.Logger:
     return logger
 
 
-def make_project(configfile, override: OmegaConf = None):
+def make_project(configfile, override: OmegaConf = None) -> Project:
 
     components = {}
     apps = {}
@@ -84,7 +86,7 @@ def make_project(configfile, override: OmegaConf = None):
         components.update(iter_components(config.components))
 
     if 'apps' in config:
-        for name, app, dependencies in iter_apps(config.apps):
+        for name, app, dependencies in iter_applications(config.apps):
             apps[name] = app
             if dependencies is not None:
                 modules.extend(dependencies)
