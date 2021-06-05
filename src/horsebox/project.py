@@ -6,7 +6,7 @@ import os
 import pathlib
 from rutter.urlmap import URLMap
 from omegaconf import OmegaConf
-from typing import Any, NamedTuple, Callable, Optional, Mapping
+from typing import Any, NamedTuple, Callable, Optional, Mapping, List
 from zope.dottedname import resolve
 from horsebox.types import WSGICallable, WSGIServer
 from horsebox.parsing import (
@@ -67,16 +67,13 @@ def make_logger(name, level=logging.DEBUG) -> logging.Logger:
 
 def make_project(configfile, override: OmegaConf = None) -> Project:
 
-    components = {}
-    apps = {}
-    modules = []
+    components: Mapping[str, Any] = {}
+    apps: Mapping[str, WSGICallable] = {}
+    modules: List[Any] = []
 
-    OmegaConf.register_resolver(
-        "path", pathlib.Path)
-    OmegaConf.register_resolver(
-        "class", resolve.resolve)
-    OmegaConf.register_resolver(
-        "component", lambda name: components[name])
+    OmegaConf.register_resolver("path", pathlib.Path)
+    OmegaConf.register_resolver("dotted", resolve.resolve)
+    OmegaConf.register_resolver("component", lambda name: components[name])
 
     config = OmegaConf.load(configfile)
     if override is not None:
@@ -92,7 +89,7 @@ def make_project(configfile, override: OmegaConf = None) -> Project:
                 modules.extend(dependencies)
 
     if 'server' in config:
-        server = prepare_server(config.server)
+        server: WSGIServer = prepare_server(config.server)
     else:
         server = None
 
