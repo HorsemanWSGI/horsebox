@@ -64,7 +64,8 @@ def make_logger(name, level=logging.DEBUG) -> logging.Logger:
     return logger
 
 
-def make_project(configfile, override: OmegaConf = None) -> Project:
+def make_project(configfiles: List[pathlib.Path],
+                 override: OmegaConf = None) -> Project:
 
     components: Mapping[str, Any] = {}
 
@@ -72,7 +73,14 @@ def make_project(configfile, override: OmegaConf = None) -> Project:
     OmegaConf.register_resolver("dotted", resolve.resolve)
     OmegaConf.register_resolver("component", lambda name: components[name])
 
-    config = OmegaConf.load(configfile)
+    config = None
+    for configfile in configfiles:
+        loaded = OmegaConf.load(configfile)
+        if config is None:
+            config = loaded
+        else:
+            config = OmegaConf.merge(config, loaded)
+
     if override is not None:
         config = OmegaConf.merge(config, override)
 
