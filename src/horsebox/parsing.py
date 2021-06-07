@@ -12,30 +12,27 @@ def apply_middlewares(app: WSGICallable, *middlewares) -> WSGICallable:
 def iter_components(components: OmegaConf):
     for name, definition in components.items():
         factory = definition.factory
-        if factory is None:
+        component = definition.component
+        if (factory is not None) ^ (component is not None):
             raise RuntimeError(
-                f'Missing factory for component {name!r}')
-        if definition.config:
-            yield name, factory(**definition.config)
-        else:
-            yield name, factory()
+                "A component definition needs either a 'factory' "
+                "or a 'component' key : at least one and not both"
+            )
 
+        if factory is not None:
+            if definition.config:
+                component = factory(**definition.config)
+            else:
+                component = factory()
+            if definition.middlewares is not None:
+                component = apply_middlewares(
+                    component, *definition.middlewares)
+        elif definition.config:
+            # We have a 'component' declaration and some extra config.
+            # It will be used as parameters for it
+            component = partial(component, **definition.config)
 
-def iter_applications(applications: OmegaConf):
-    for name, definition in applications.items():
-        factory = definition.factory
-        if factory is None:
-            raise RuntimeError(
-                f'Missing factory for component {name!r}')
-
-        if definition.config is not None:
-            app = factory(**definition.config)
-        else:
-            app = factory()
-        if definition.middlewares is not None:
-            app = apply_middlewares(app, *definition.middlewares)
-
-        yield name, app, definition.modules
+        yield name, component
 
 
 def prepare_server(server: OmegaConf) -> WSGIServer:

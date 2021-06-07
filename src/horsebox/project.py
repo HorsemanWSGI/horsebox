@@ -9,8 +9,7 @@ from omegaconf import OmegaConf
 from typing import Any, NamedTuple, Callable, Optional, Mapping, List
 from zope.dottedname import resolve
 from horsebox.types import WSGICallable, WSGIServer
-from horsebox.parsing import (
-    iter_applications, iter_components, prepare_server)
+from horsebox.parsing import iter_components, prepare_server
 
 
 class Project(NamedTuple):
@@ -68,8 +67,6 @@ def make_logger(name, level=logging.DEBUG) -> logging.Logger:
 def make_project(configfile, override: OmegaConf = None) -> Project:
 
     components: Mapping[str, Any] = {}
-    apps: Mapping[str, WSGICallable] = {}
-    modules: List[Any] = []
 
     OmegaConf.register_resolver("path", pathlib.Path)
     OmegaConf.register_resolver("dotted", resolve.resolve)
@@ -82,11 +79,7 @@ def make_project(configfile, override: OmegaConf = None) -> Project:
     if 'components' in config:
         components.update(iter_components(config.components))
 
-    if 'apps' in config:
-        for name, app, dependencies in iter_applications(config.apps):
-            apps[name] = app
-            if dependencies is not None:
-                modules.extend(dependencies)
+    apps: Mapping[str, WSGICallable] = dict(iter_components(config.apps))
 
     if 'server' in config:
         server: WSGIServer = prepare_server(config.server)
@@ -99,7 +92,7 @@ def make_project(configfile, override: OmegaConf = None) -> Project:
         components=components,
         apps=apps,
         environ=config.environ,
-        modules=modules,
+        modules=config.modules or [],
         logger=make_logger(name),
         server=server
     )
