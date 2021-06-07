@@ -13,7 +13,7 @@ def iter_components(components: OmegaConf):
     for name, definition in components.items():
         factory = definition.factory
         component = definition.component
-        if (factory is not None) ^ (component is not None):
+        if not (factory is not None) ^ (component is not None):
             raise RuntimeError(
                 "A component definition needs either a 'factory' "
                 "or a 'component' key : at least one and not both"
@@ -24,13 +24,13 @@ def iter_components(components: OmegaConf):
                 component = factory(**definition.config)
             else:
                 component = factory()
-            if definition.middlewares is not None:
-                component = apply_middlewares(
-                    component, *definition.middlewares)
         elif definition.config:
             # We have a 'component' declaration and some extra config.
             # It will be used as parameters for it
             component = partial(component, **definition.config)
+
+        if definition.middlewares is not None:
+            component = apply_middlewares(component, *definition.middlewares)
 
         yield name, component
 
