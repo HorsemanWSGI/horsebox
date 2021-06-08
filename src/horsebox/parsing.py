@@ -59,7 +59,9 @@ def iter_modules(conf: Optional[Union[ListConfig, DictConfig]]):
         for module in modules:
             if not isinstance(module, ModuleType):
                 raise TypeError(
-                    "Modules can only reference ModuleType elements")
+                    "Modules can only reference ModuleType elements. "
+                    f"Got {type(module)} instead."
+                )
             if module not in seen:
                 yield module
                 seen.add(module)
