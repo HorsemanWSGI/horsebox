@@ -12,11 +12,14 @@ def http(*configfiles: pathlib.Path):
     project: Project = make_project(
         configfiles, override=OmegaConf.from_cli())
     project.logger.info(
-         f'Horsebox is boostrapping your project: {project.name}')
+         f'Horsebox is boostrapping {project.name!r}')
     try:
-        project.run()
+        project.start()
     except KeyboardInterrupt:
-         project.logger.info(f'{project.name} shutting down.')
+         project.logger.info(f'{project.name!r} shutting down.')
+    finally:
+        project.stop()
+        project.logger.info(f"Goodbye.")
 
 
 def serve():

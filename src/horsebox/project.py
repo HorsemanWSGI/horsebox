@@ -8,7 +8,8 @@ from rutter.urlmap import URLMap
 from omegaconf import OmegaConf
 from typing import Any, NamedTuple, Callable, Optional, Mapping, List
 from zope.dottedname import resolve
-from horsebox.types import WSGICallable, WSGIServer
+from types import ModuleType
+from horsebox.types import WSGICallable, WSGIServer, Worker
 from horsebox.parsing import iter_components, iter_modules, prepare_server
 
 
@@ -17,7 +18,8 @@ class Project(NamedTuple):
     apps: Mapping[str, WSGICallable]
     components: Mapping[str, Any]
     environ: Mapping[str, str]
-    modules: list
+    modules: List[ModuleType]
+    workers: Mapping[str, Worker]
     logger: logging.Logger
     server: Optional[WSGIServer]
 
@@ -36,21 +38,32 @@ class Project(NamedTuple):
 
     def scan(self):
         for module in self.modules:
-            self.logger.info(f"... scanning module {module.__name__}")
+            self.logger.info(f"... scanning module {module.__name__!r}")
             importscan.scan(module)
 
-    def run(self):
+    def start(self):
         if self.server is None:
             raise NotImplementedError(
-                f'No server defined for project {self.name}.')
+                f'No server defined for project {self.name!r}.')
 
         with self.environment():
             root = URLMap()
             for name, app in self.apps.items():
                 root[name] = app
             self.scan()
-            self.logger.info(f"{self.name} server starts.")
+            if self.workers:
+                for name, worker in self.workers.items():
+                    self.logger.info(f"... worker {name!r} starts")
+                    worker.start()
+
+            self.logger.info(f"{self.name!r} server starts.")
             self.server(root)
+
+    def stop(self):
+        if self.workers:
+            for name, worker in self.workers.items():
+                self.logger.info(f"... worker {name!r} stops")
+                worker.stop()
 
 
 def make_logger(name, level=logging.DEBUG) -> logging.Logger:
@@ -87,7 +100,19 @@ def make_project(configfiles: List[pathlib.Path],
     if 'components' in config:
         components.update(iter_components(config.components))
 
-    apps: Mapping[str, WSGICallable] = dict(iter_components(config.apps))
+    if 'apps' in config:
+        apps: Mapping[str, WSGICallable] = dict(
+            iter_components(config.apps)
+        )
+    else:
+        apps = None
+
+    if 'workers' in config:
+        workers: Mapping[str, WSGICallable] = dict(
+            iter_components(config.workers)
+        )
+    else:
+        workers = None
 
     if 'server' in config:
         server: WSGIServer = prepare_server(config.server)
@@ -100,6 +125,7 @@ def make_project(configfiles: List[pathlib.Path],
         components=components,
         apps=apps,
         environ=config.environ,
+        workers=workers,
         modules=list(iter_modules(config.modules)),
         logger=make_logger(name),
         server=server
