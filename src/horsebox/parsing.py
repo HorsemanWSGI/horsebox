@@ -14,8 +14,8 @@ def apply_middlewares(
 
 def iter_components(components: DictConfig):
     for name, definition in components.items():
-        factory = definition.factory
-        component = definition.component
+        factory = definition.get('factory')
+        component = definition.get('component')
         if not (factory is not None) ^ (component is not None):
             raise RuntimeError(
                 "A component definition needs either a 'factory' "
