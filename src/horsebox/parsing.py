@@ -1,15 +1,19 @@
 from omegaconf import OmegaConf
+from omegaconf.listconfig import ListConfig
+from omegaconf.dictconfig import DictConfig
 from functools import reduce, partial
-from horsebox.types import WSGICallable, WSGIServer
+from typing import Union, Iterable, Optional, List
+from types import ModuleType
+from horsebox.types import WSGICallable, WSGIServer, WSGIMiddleware
 
 
-def apply_middlewares(app: WSGICallable, *middlewares) -> WSGICallable:
-    wrapped = reduce(lambda x, y: y(x), reversed(middlewares), app)
-    wrapped.__wrapped__ = app
-    return wrapped
+def apply_middlewares(
+        app: WSGICallable,
+        middlewares: Iterable[WSGIMiddleware]) -> WSGICallable:
+    return reduce(lambda x, y: y(x), reversed(middlewares), app)
 
 
-def iter_components(components: OmegaConf):
+def iter_components(components: DictConfig):
     for name, definition in components.items():
         factory = definition.factory
         component = definition.component
@@ -29,13 +33,41 @@ def iter_components(components: OmegaConf):
             # It will be used as parameters for it
             component = partial(component, **definition.config)
 
-        if definition.middlewares is not None:
-            component = apply_middlewares(component, *definition.middlewares)
+        if (middlewares := definition.get('middlewares')) is not None:
+            if not isinstance(middlewares, (ListConfig, list)):
+                raise TypeError(
+                    "Middlewares can only be defined as a "
+                    "list of callables. See the 'component' statement."
+                )
+            component = apply_middlewares(component, middlewares)
 
         yield name, component
 
 
-def prepare_server(server: OmegaConf) -> WSGIServer:
+def iter_modules(conf: Optional[Union[ListConfig, DictConfig]]):
+    if conf is not None:
+        if isinstance(conf, (ListConfig, list)):
+            modules = conf
+        elif isinstance(conf, (DictConfig, dict)):
+            modules = conf.values()
+        else:
+            raise TypeError(
+                "Modules can only be defined as a list of a dict "
+                "with the module as key and a description as a value."
+            )
+        seen = set()
+        for module in modules:
+            if not isinstance(module, ModuleType):
+                raise TypeError(
+                    "Modules can only reference ModuleType elements")
+            if module not in seen:
+                yield module
+                seen.add(module)
+
+
+def prepare_server(server: DictConfig) -> WSGIServer:
+    if server is None:
+        return None
     factory = server.factory
     if factory is None:
         raise RuntimeError('Missing factory for server')

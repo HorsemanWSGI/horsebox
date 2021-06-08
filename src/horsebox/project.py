@@ -9,7 +9,7 @@ from omegaconf import OmegaConf
 from typing import Any, NamedTuple, Callable, Optional, Mapping, List
 from zope.dottedname import resolve
 from horsebox.types import WSGICallable, WSGIServer
-from horsebox.parsing import iter_components, prepare_server
+from horsebox.parsing import iter_components, iter_modules, prepare_server
 
 
 class Project(NamedTuple):
@@ -100,7 +100,7 @@ def make_project(configfiles: List[pathlib.Path],
         components=components,
         apps=apps,
         environ=config.environ,
-        modules=config.modules or [],
+        modules=list(iter_modules(config.modules)),
         logger=make_logger(name),
         server=server
     )
