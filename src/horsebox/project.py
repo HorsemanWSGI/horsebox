@@ -6,7 +6,7 @@ import os
 import pathlib
 from rutter.urlmap import URLMap
 from omegaconf import OmegaConf
-from typing import Any, NamedTuple, Callable, Optional, Mapping, List
+from typing import Any, NamedTuple, Optional, Mapping, List
 from zope.dottedname import resolve
 from types import ModuleType
 from horsebox.types import WSGICallable, WSGIServer, Worker

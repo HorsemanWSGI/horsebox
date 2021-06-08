@@ -1,8 +1,7 @@
-from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 from omegaconf.dictconfig import DictConfig
 from functools import reduce, partial
-from typing import Union, Iterable, Optional, List
+from typing import Union, Iterable, Optional
 from types import ModuleType
 from horsebox.types import WSGICallable, WSGIServer, WSGIMiddleware
 

@@ -1,5 +1,4 @@
 import pathlib
-from typing import List
 from minicli import cli, run
 from omegaconf import OmegaConf
 from horsebox.project import Project, make_project
@@ -19,7 +18,7 @@ def http(*configfiles: pathlib.Path):
          project.logger.info(f'{project.name!r} shutting down.')
     finally:
         project.stop()
-        project.logger.info(f"Goodbye.")
+        project.logger.info("Goodbye.")
 
 
 def serve():
