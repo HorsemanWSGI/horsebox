@@ -28,13 +28,16 @@ class Project(NamedTuple):
         """Temporarily set the process environment variables.
         """
         self.logger.info("... setting up environment")
-        old_environ = dict(os.environ)
-        os.environ.update(dict(self.environ))
-        try:
+        if self.environ is None:
             yield
-        finally:
-            os.environ.clear()
-            os.environ.update(old_environ)
+        else:
+            old_environ = dict(os.environ)
+            os.environ.update(dict(self.environ))
+            try:
+                yield
+            finally:
+                os.environ.clear()
+                os.environ.update(old_environ)
 
     def scan(self):
         for module in self.modules:
@@ -119,14 +122,14 @@ def make_project(configfiles: List[pathlib.Path],
     else:
         server = None
 
-    name = config.name or 'Unnamed project'
+    name = config.get('name', 'Unnamed project')
     return Project(
         name=name,
         components=components,
         apps=apps,
-        environ=config.environ,
+        environ=config.get('environ'),
         workers=workers,
-        modules=list(iter_modules(config.modules)),
+        modules=list(iter_modules(config.get('modules'))),
         logger=make_logger(name),
         server=server
     )

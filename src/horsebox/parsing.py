@@ -22,15 +22,16 @@ def iter_components(components: DictConfig):
                 "or a 'component' key : at least one and not both"
             )
 
+        config = definition.get('config')
         if factory is not None:
-            if definition.config:
-                component = factory(**definition.config)
+            if config is not None:
+                component = factory(**config)
             else:
                 component = factory()
-        elif definition.config:
+        elif config is not None:
             # We have a 'component' declaration and some extra config.
             # It will be used as parameters for it
-            component = partial(component, **definition.config)
+            component = partial(component, **config)
 
         if (middlewares := definition.get('middlewares')) is not None:
             if not isinstance(middlewares, (ListConfig, list)):
