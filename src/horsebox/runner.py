@@ -15,7 +15,7 @@ def http(*configfiles: pathlib.Path):
     try:
         project.start()
     except KeyboardInterrupt:
-         project.logger.info(f'{project.name!r} shutting down.')
+        project.logger.info(f'{project.name!r} shutting down.')
     finally:
         project.stop()
         project.logger.info("Goodbye.")
