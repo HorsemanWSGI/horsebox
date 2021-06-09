@@ -8,7 +8,7 @@ install_requires = [
     'colorlog',
     'importscan',
     'minicli',
-    'omegaconf',
+    'omegaconf >= 2.1',
     'rutter',
     'zope.dottedname',
 ]

@@ -28,13 +28,16 @@ class Project(NamedTuple):
         """Temporarily set the process environment variables.
         """
         self.logger.info("... setting up environment")
-        old_environ = dict(os.environ)
-        os.environ.update(dict(self.environ))
-        try:
+        if self.environ is None:
             yield
-        finally:
-            os.environ.clear()
-            os.environ.update(old_environ)
+        else:
+            old_environ = dict(os.environ)
+            os.environ.update(dict(self.environ))
+            try:
+                yield
+            finally:
+                os.environ.clear()
+                os.environ.update(old_environ)
 
     def scan(self):
         for module in self.modules:
@@ -80,9 +83,10 @@ def make_project(configfiles: List[pathlib.Path],
 
     components: Mapping[str, Any] = {}
 
-    OmegaConf.register_resolver("path", pathlib.Path)
-    OmegaConf.register_resolver("dotted", resolve.resolve)
-    OmegaConf.register_resolver("component", lambda name: components[name])
+    OmegaConf.register_new_resolver("path", pathlib.Path)
+    OmegaConf.register_new_resolver("dotted", resolve.resolve)
+    OmegaConf.register_new_resolver(
+        "component", lambda name: components[name])
 
     config = None
     for configfile in configfiles:
@@ -113,13 +117,13 @@ def make_project(configfiles: List[pathlib.Path],
     else:
         workers = None
 
-    name = config.name or 'Unnamed project'
+    name = config.get('name', 'Unnamed project')
     return Project(
         name=name,
         components=components,
         environ=config.environ,
         workers=workers,
-        modules=list(iter_modules(config.modules)),
+        modules=list(iter_modules(config.get('modules'))),
         logger=make_logger(name),
         runner=runner
     )
