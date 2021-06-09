@@ -1,46 +1,46 @@
 from omegaconf.listconfig import ListConfig
 from omegaconf.dictconfig import DictConfig
 from functools import reduce, partial
-from typing import Union, Iterable, Optional
+from typing import Union, Iterable, Optional, Callable, Any
 from types import ModuleType
-from horsebox.types import WSGICallable, WSGIServer, WSGIMiddleware
 
 
-def apply_middlewares(
-        app: WSGICallable,
-        middlewares: Iterable[WSGIMiddleware]) -> WSGICallable:
-    return reduce(lambda x, y: y(x), reversed(middlewares), app)
+def apply_middlewares(canonic: Any, middlewares: Iterable[Callable]):
+    return reduce(lambda x, y: y(x), reversed(middlewares), canonic)
+
+
+def parse_component(definition: DictConfig):
+    factory = definition.factory
+    component = definition.component
+    if not (factory is not None) ^ (component is not None):
+        raise RuntimeError(
+            "A component definition needs either a 'factory' "
+            "or a 'component' key : at least one and not both"
+        )
+
+    if factory is not None:
+        if definition.config:
+            component = factory(**definition.config)
+        else:
+            component = factory()
+    elif definition.config:
+        # We have a 'component' declaration and some extra config.
+        # It will be used as parameters for it
+        component = partial(component, **definition.config)
+
+    if (middlewares := definition.get('middlewares')) is not None:
+        if not isinstance(middlewares, (ListConfig, list)):
+            raise TypeError(
+                "Middlewares can only be defined as a "
+                "list of callables. See the 'component' statement."
+            )
+        component = apply_middlewares(component, middlewares)
+    return component
 
 
 def iter_components(components: DictConfig):
     for name, definition in components.items():
-        factory = definition.factory
-        component = definition.component
-        if not (factory is not None) ^ (component is not None):
-            raise RuntimeError(
-                "A component definition needs either a 'factory' "
-                "or a 'component' key : at least one and not both"
-            )
-
-        if factory is not None:
-            if definition.config:
-                component = factory(**definition.config)
-            else:
-                component = factory()
-        elif definition.config:
-            # We have a 'component' declaration and some extra config.
-            # It will be used as parameters for it
-            component = partial(component, **definition.config)
-
-        if (middlewares := definition.get('middlewares')) is not None:
-            if not isinstance(middlewares, (ListConfig, list)):
-                raise TypeError(
-                    "Middlewares can only be defined as a "
-                    "list of callables. See the 'component' statement."
-                )
-            component = apply_middlewares(component, middlewares)
-
-        yield name, component
+        yield name, parse_component(definition)
 
 
 def iter_modules(conf: Optional[Union[ListConfig, DictConfig]]):
@@ -66,10 +66,5 @@ def iter_modules(conf: Optional[Union[ListConfig, DictConfig]]):
                 seen.add(module)
 
 
-def prepare_server(server: DictConfig) -> WSGIServer:
-    if server is None:
-        return None
-    factory = server.factory
-    if factory is None:
-        raise RuntimeError('Missing factory for server')
-    return partial(factory, **server.config)
+def prepare_runner(definition: DictConfig) -> Callable:
+    return parse_component(definition)

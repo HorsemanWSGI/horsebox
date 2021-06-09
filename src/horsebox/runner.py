@@ -1,11 +1,11 @@
 import pathlib
-from minicli import cli, run
+import minicli
 from omegaconf import OmegaConf
 from horsebox.project import Project, make_project
 
 
-@cli
-def http(*configfiles: pathlib.Path):
+@minicli.cli
+def run(*configfiles: pathlib.Path):
     """HTTP Server runner
     """
     project: Project = make_project(
@@ -22,4 +22,4 @@ def http(*configfiles: pathlib.Path):
 
 
 def serve():
-    run()
+    minicli.run()

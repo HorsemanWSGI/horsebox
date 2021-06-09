@@ -4,24 +4,24 @@ import importscan
 import logging
 import os
 import pathlib
-from rutter.urlmap import URLMap
 from omegaconf import OmegaConf
-from typing import Any, NamedTuple, Optional, Mapping, List
+from typing import Any, NamedTuple, Mapping, List, Callable
 from zope.dottedname import resolve
 from types import ModuleType
-from horsebox.types import WSGICallable, WSGIServer, Worker
-from horsebox.parsing import iter_components, iter_modules, prepare_server
+from horsebox.parsing import iter_components, iter_modules, parse_component
+
+
+Runner = Worker = Callable[[], None]
 
 
 class Project(NamedTuple):
     name: str
-    apps: Mapping[str, WSGICallable]
+    runner: Runner
     components: Mapping[str, Any]
     environ: Mapping[str, str]
     modules: List[ModuleType]
     workers: Mapping[str, Worker]
     logger: logging.Logger
-    server: Optional[WSGIServer]
 
     @contextlib.contextmanager
     def environment(self):
@@ -41,23 +41,21 @@ class Project(NamedTuple):
             self.logger.info(f"... scanning module {module.__name__!r}")
             importscan.scan(module)
 
+    def _run(self):
+        self.scan()
+        if self.workers:
+            for name, worker in self.workers.items():
+                self.logger.info(f"... worker {name!r} starts")
+                worker.start()
+        self.logger.info(f"{self.name!r} runner starts.")
+        self.runner()
+
     def start(self):
-        if self.server is None:
-            raise NotImplementedError(
-                f'No server defined for project {self.name!r}.')
-
-        with self.environment():
-            root = URLMap()
-            for name, app in self.apps.items():
-                root[name] = app
-            self.scan()
-            if self.workers:
-                for name, worker in self.workers.items():
-                    self.logger.info(f"... worker {name!r} starts")
-                    worker.start()
-
-            self.logger.info(f"{self.name!r} server starts.")
-            self.server(root)
+        if self.environment:
+            with self.environment():
+                self._run()
+        else:
+            self._run()
 
     def stop(self):
         if self.workers:
@@ -97,36 +95,31 @@ def make_project(configfiles: List[pathlib.Path],
     if override is not None:
         config = OmegaConf.merge(config, override)
 
+    if 'runner' not in config:
+        # A runner is a mandatory callable that keeps the process alive.
+        raise RuntimeError(
+            "No declared runner: use 'horsebox.builtins.asyncio_loop' "
+            "to run forever.")
+
     if 'components' in config:
         components.update(iter_components(config.components))
 
-    if 'apps' in config:
-        apps: Mapping[str, WSGICallable] = dict(
-            iter_components(config.apps)
-        )
-    else:
-        apps = None
+    runner: Runner = parse_component(config.runner)
 
     if 'workers' in config:
-        workers: Mapping[str, WSGICallable] = dict(
+        workers: Mapping[str, Worker] = dict(
             iter_components(config.workers)
         )
     else:
         workers = None
 
-    if 'server' in config:
-        server: WSGIServer = prepare_server(config.server)
-    else:
-        server = None
-
     name = config.name or 'Unnamed project'
     return Project(
         name=name,
         components=components,
-        apps=apps,
         environ=config.environ,
         workers=workers,
         modules=list(iter_modules(config.modules)),
         logger=make_logger(name),
-        server=server
+        runner=runner
     )

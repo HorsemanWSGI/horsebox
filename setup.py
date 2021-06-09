@@ -26,7 +26,7 @@ setup(
     url='http://',
     download_url='http://pypi.python.org/pypi/horsebox',
     description='Deployment utility for WSGI apps',
-    long_description=(open("README.txt").read() + "\n" +
+    long_description=(open("README.rst").read() + "\n" +
                       open(os.path.join("docs", "HISTORY.txt")).read()),
     license='ZPL',
     classifiers=[
