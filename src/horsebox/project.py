@@ -85,9 +85,10 @@ def make_project(configfiles: List[pathlib.Path],
 
     components: Mapping[str, Any] = {}
 
-    OmegaConf.register_resolver("path", pathlib.Path)
-    OmegaConf.register_resolver("dotted", resolve.resolve)
-    OmegaConf.register_resolver("component", lambda name: components[name])
+    OmegaConf.register_new_resolver("path", pathlib.Path)
+    OmegaConf.register_new_resolver("dotted", resolve.resolve)
+    OmegaConf.register_new_resolver(
+        "component", lambda name: components[name])
 
     config = None
     for configfile in configfiles:
