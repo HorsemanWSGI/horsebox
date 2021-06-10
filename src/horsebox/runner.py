@@ -1,16 +1,33 @@
 import pathlib
 import minicli
+from hyperpyyaml import load_hyperpyyaml
+from logging import Logger
 from horsebox.project import Configuration, Project
+from horsebox.utils import make_logger
 
 
 @minicli.cli
 def run(*configfiles: pathlib.Path,
         runner: str = 'main',
         no_worker: bool=False):
-    """HTTP Server runner
-    """
-    configs = [Configuration.from_yaml(fpath) for fpath in configfiles]
-    project: Project = Project.from_configs(*configs)
+
+    config = None
+    for configfile in reversed(configfiles):
+        with configfile.open("r") as f:
+            #if config is not None:
+            #    config: dict = load_hyperpyyaml(f, overrides=config)
+            #else:
+                config: dict = load_hyperpyyaml(f)
+
+    config: Configuration = Configuration(
+        environ=config.get('environ', {}),
+        modules=config.get('modules', []),
+        workers=config.get('workers', {}),
+        runners=config.get('runners', {})
+    )
+
+    logger: Logger = make_logger(config.get('name', 'Unnamed project'))
+    project: Project = Project(config=config, logger=logger)
 
     project.logger.info(
         f'Horsebox is boostrapping {project.config.name!r}')
