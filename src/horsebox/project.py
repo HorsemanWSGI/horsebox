@@ -1,15 +1,13 @@
 import re
 import importscan
 import logging
-import pathlib
 from types import ModuleType
 from typing import Any, NamedTuple, Mapping, Iterable, Callable, ClassVar
 from dataclasses import dataclass, field
-from horsebox.utils import environment, make_logger
+from horsebox.utils import environment
 
 
 Runner = Worker = Callable[[Any], Any]
-
 
 
 class Configuration(NamedTuple):
@@ -19,6 +17,7 @@ class Configuration(NamedTuple):
     runners: Mapping[str, Runner]
 
 
+@dataclass
 class Project:
     logger: logging.Logger
     config: Configuration
@@ -31,7 +30,7 @@ class Project:
     def scan(self):
         for module in self.config.modules:
             self.logger.info(f"... scanning module {module.__name__!r}")
-            importscan.scan(module, ignore=scan_ignore_modules)
+            importscan.scan(module, ignore=self.scan_ignore_modules)
 
     def start(self, runner: str, no_worker: bool = False):
         if (service := self.config.runners.get(runner)) is None:
@@ -51,11 +50,11 @@ class Project:
                 service()
         else:
             self.scan()
-            self.logger.info("Starting service {runner!r}.")
+            self.logger.info(f"Starting service {runner!r}.")
             service()
 
     def stop(self):
         if self.workers:
-            self.logger.info(f"... Shutting down workers")
+            self.logger.info("... Shutting down workers")
             for worker in self.workers:
                 worker.stop()

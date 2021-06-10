@@ -7,37 +7,27 @@ from horsebox.utils import make_logger
 
 
 @minicli.cli
-def run(*configfiles: pathlib.Path,
-        runner: str = 'main',
-        no_worker: bool=False):
+def run(runner: str, configfile: pathlib.Path, no_worker: bool = False):
 
-    config = None
-    for configfile in reversed(configfiles):
-        with configfile.open("r") as f:
-            #if config is not None:
-            #    config: dict = load_hyperpyyaml(f, overrides=config)
-            #else:
-                config: dict = load_hyperpyyaml(f)
+    with configfile.open('r') as f:
+        config: dict = load_hyperpyyaml(f)
 
-    config: Configuration = Configuration(
+    logger: Logger = make_logger(config.get('name', 'Unnamed project'))
+    project: Project = Project(logger=logger, config=Configuration(
         environ=config.get('environ', {}),
         modules=config.get('modules', []),
         workers=config.get('workers', {}),
         runners=config.get('runners', {})
-    )
+    ))
 
-    logger: Logger = make_logger(config.get('name', 'Unnamed project'))
-    project: Project = Project(config=config, logger=logger)
-
-    project.logger.info(
-        f'Horsebox is boostrapping {project.config.name!r}')
+    project.logger.info('Horsebox is starting...')
     try:
         project.start(runner, no_worker)
     except KeyboardInterrupt:
-        project.logger.info(f'{project.config.name!r} shutting down.')
+        project.logger.info('Horsebox is shutting down...')
     finally:
         project.stop()
-    project.logger.info('Horsebox stopped.')
+    project.logger.info('Horsebox stopped. Goodbye.')
 
 
 def main():

@@ -1,5 +1,5 @@
-loop: !apply:asyncio.get_event_loop
+imports: !include:test.yaml
 
 runners:
   asyncio: !name:horsebox.builtins.asyncio_loop
-    - !ref <loop>
+    - !ref <imports[loop]>
