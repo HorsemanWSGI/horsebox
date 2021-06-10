@@ -9,7 +9,7 @@ install_requires = [
     'importscan',
     'minicli',
     'hyperpyyaml >= 1.0',
-    'rutter',
+    'rutter'
 ]
 
 test_requires = [

@@ -4,7 +4,9 @@ from horsebox.project import Configuration, Project
 
 
 @minicli.cli
-def run(*configfiles: pathlib.Path):
+def run(*configfiles: pathlib.Path,
+        runner: str = 'main',
+        no_worker: bool=False):
     """HTTP Server runner
     """
     configs = [Configuration.from_yaml(fpath) for fpath in configfiles]
@@ -13,7 +15,7 @@ def run(*configfiles: pathlib.Path):
     project.logger.info(
         f'Horsebox is boostrapping {project.config.name!r}')
     try:
-        project.start()
+        project.start(runner, no_worker)
     except KeyboardInterrupt:
         project.logger.info(f'{project.config.name!r} shutting down.')
     finally:
