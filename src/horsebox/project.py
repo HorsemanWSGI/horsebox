@@ -1,136 +1,86 @@
-import colorlog
-import contextlib
 import importscan
 import logging
-import os
 import pathlib
-from omegaconf import OmegaConf
-from typing import Any, NamedTuple, Mapping, List, Callable
-from zope.dottedname import resolve
+import hyperpyyaml
 from types import ModuleType
-from horsebox.parsing import iter_components, iter_modules, parse_component
+from typing import Any, NamedTuple, Optional, Mapping, List, Callable
+from horsebox.utils import environment, make_logger
 
 
-Runner = Worker = Callable[[], None]
+Runner = Worker = Callable[[Any], Any]
 
 
-class Project(NamedTuple):
+class Configuration(NamedTuple):
     name: str
-    runner: Runner
     components: Mapping[str, Any]
     environ: Mapping[str, str]
     modules: List[ModuleType]
     workers: Mapping[str, Worker]
-    logger: logging.Logger
+    runner: Optional[Runner] = None
 
-    @contextlib.contextmanager
-    def environment(self):
-        """Temporarily set the process environment variables.
-        """
-        self.logger.info("... setting up environment")
-        if self.environ is None:
-            yield
+    @classmethod
+    def from_yaml(cls, configfile: pathlib.Path):
+        with configfile.open("r") as f:
+            config: dict = hyperpyyaml.load_hyperpyyaml(f)
+        if 'components' not in config:
+            config['components'] = {}
+        if 'name' not in config:
+            config['name'] = 'Unnamed project'
+        return cls(
+            name=config.get('name', 'Unnamed project'),
+            components=config.get('components', {}),
+            environ=config.get('environ', {}),
+            modules=config.get('modules', []),
+            workers=config.get('workers', {}),
+            runner=config.get('runner')
+        )
+
+    def __add__(self, config: 'Configuration'):
+        return self.__class__(
+            name=config.name,  # override
+            runner=config.runner,  # override
+            components={**self.components, **config.components},
+            environ={**self.environ, **config.environ},
+            modules=self.modules + config.modules,
+            workers={**self.workers, **config.workers},
+        )
+
+
+class Project(NamedTuple):
+    logger: logging.Logger
+    config: Configuration
+
+    @classmethod
+    def from_configs(cls, *configs: Configuration):
+        if len(configs) == 1:
+            config = configs[0]
         else:
-            old_environ = dict(os.environ)
-            os.environ.update(dict(self.environ))
-            try:
-                yield
-            finally:
-                os.environ.clear()
-                os.environ.update(old_environ)
+            config = sum(configs)
+        logger = make_logger(config.name)
+        return cls(config=config, logger=logger)
 
     def scan(self):
-        if self.modules:
-            for module in self.modules:
-                self.logger.info(f"... scanning module {module.__name__!r}")
-                importscan.scan(module)
+        for module in self.config.modules:
+            self.logger.info(f"... scanning module {module.__name__!r}")
+            importscan.scan(module)
 
     def _run(self):
         self.scan()
-        if self.workers:
-            for name, worker in self.workers.items():
-                self.logger.info(f"... worker {name!r} starts")
-                worker.start()
-        self.logger.info(f"{self.name!r} runner starts.")
-        self.runner()
+        for name, worker in self.config.workers.items():
+            self.logger.info(f"... worker {name!r} starts")
+            worker.start()
+        self.logger.info(f"{self.config.name!r} runner starts.")
+        self.config.runner()
 
     def start(self):
-        if self.environment:
-            with self.environment():
+        if self.config.environ:
+            self.logger.info("... setting up environment")
+            with environment(self.config.environ):
                 self._run()
         else:
             self._run()
 
     def stop(self):
-        if self.workers:
-            for name, worker in self.workers.items():
-                self.logger.info(f"... worker {name!r} stops")
-                worker.stop()
-
-
-def make_logger(name, level=logging.DEBUG) -> logging.Logger:
-    logger = colorlog.getLogger(name)
-    logger.setLevel(level)
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(colorlog.ColoredFormatter(
-        '%(red)s%(levelname)-8s%(reset)s '
-        '%(yellow)s[%(name)s]%(reset)s %(green)s%(message)s'))
-    logger.addHandler(handler)
-    return logger
-
-
-def make_project(configfiles: List[pathlib.Path],
-                 override: OmegaConf = None) -> Project:
-
-    components: Mapping[str, Any] = {}
-
-    OmegaConf.register_new_resolver("path", pathlib.Path)
-    OmegaConf.register_new_resolver(
-        "dotted", resolve.resolve, use_cache=True)
-    OmegaConf.register_new_resolver(
-        "component", lambda name: components[name], use_cache=True)
-
-    config = None
-    for configfile in configfiles:
-        loaded = OmegaConf.load(configfile)
-        if config is None:
-            config = loaded
-        else:
-            config = OmegaConf.merge(config, loaded)
-
-    if override is not None:
-        config = OmegaConf.merge(config, override)
-
-    if 'runner' not in config:
-        # A runner is a mandatory callable that keeps the process alive.
-        raise RuntimeError(
-            "No declared runner: use 'horsebox.builtins.asyncio_loop' "
-            "to run forever.")
-
-    if 'components' in config:
-        components.update(iter_components(config['components']))
-
-    runner: Runner = parse_component(config['runner'])
-
-    if 'workers' in config:
-        workers: Mapping[str, Worker] = dict(
-            iter_components(config['workers'])
-        )
-    else:
-        workers = None
-
-    if 'modules' in config:
-        modules = list(iter_modules(config['modules']))
-    else:
-        modules = None
-
-    name = config.get('name', 'Unnamed project')
-    return Project(
-        name=name,
-        components=components,
-        environ=config.get('environ'),
-        workers=workers,
-        modules=modules,
-        logger=make_logger(name),
-        runner=runner
-    )
+        for name, worker in self.config.workers.items():
+            self.logger.info(f"... worker {name!r} stops")
+            worker.stop()

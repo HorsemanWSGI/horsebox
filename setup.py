@@ -8,9 +8,8 @@ install_requires = [
     'colorlog',
     'importscan',
     'minicli',
-    'omegaconf >= 2.1',
+    'hyperpyyaml >= 1.0',
     'rutter',
-    'zope.dottedname',
 ]
 
 test_requires = [
@@ -45,7 +44,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'horsebox = horsebox.runner:serve'
+            'horsebox = horsebox.runner:main'
         ],
     },
 )
