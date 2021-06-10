@@ -30,7 +30,7 @@ def parse_component(definition: Union[DictConfig, dict]):
             component = factory(*bound.args, **bound.kwargs)
         else:
             sig = signature(component)
-            bound = sig.bind(**config)
+            bound = sig.bind_partial(**config)
             component = partial(component, *bound.args, **bound.kwargs)
 
     if (middlewares := definition.get('middlewares')) is not None:

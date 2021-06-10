@@ -40,9 +40,10 @@ class Project(NamedTuple):
                 os.environ.update(old_environ)
 
     def scan(self):
-        for module in self.modules:
-            self.logger.info(f"... scanning module {module.__name__!r}")
-            importscan.scan(module)
+        if self.modules:
+            for module in self.modules:
+                self.logger.info(f"... scanning module {module.__name__!r}")
+                importscan.scan(module)
 
     def _run(self):
         self.scan()
@@ -84,9 +85,10 @@ def make_project(configfiles: List[pathlib.Path],
     components: Mapping[str, Any] = {}
 
     OmegaConf.register_new_resolver("path", pathlib.Path)
-    OmegaConf.register_new_resolver("dotted", resolve.resolve)
     OmegaConf.register_new_resolver(
-        "component", lambda name: components[name])
+        "dotted", resolve.resolve, use_cache=True)
+    OmegaConf.register_new_resolver(
+        "component", lambda name: components[name], use_cache=True)
 
     config = None
     for configfile in configfiles:
@@ -106,24 +108,29 @@ def make_project(configfiles: List[pathlib.Path],
             "to run forever.")
 
     if 'components' in config:
-        components.update(iter_components(config.components))
+        components.update(iter_components(config['components']))
 
-    runner: Runner = parse_component(config.runner)
+    runner: Runner = parse_component(config['runner'])
 
     if 'workers' in config:
         workers: Mapping[str, Worker] = dict(
-            iter_components(config.workers)
+            iter_components(config['workers'])
         )
     else:
         workers = None
+
+    if 'modules' in config:
+        modules = list(iter_modules(config['modules']))
+    else:
+        modules = None
 
     name = config.get('name', 'Unnamed project')
     return Project(
         name=name,
         components=components,
-        environ=config.environ,
+        environ=config.get('environ'),
         workers=workers,
-        modules=list(iter_modules(config.get('modules'))),
+        modules=modules,
         logger=make_logger(name),
         runner=runner
     )
