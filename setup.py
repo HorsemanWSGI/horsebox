@@ -6,11 +6,11 @@ version = "0.1"
 
 install_requires = [
     'colorlog',
+    'hyperpyyaml >= 1.0',
     'importscan',
     'minicli',
-    'hyperpyyaml >= 1.0',
     'rutter',
-    'vali >= 1.0',
+    'typeguard',
 ]
 
 test_requires = [
