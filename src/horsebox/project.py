@@ -1,28 +1,37 @@
 import re
 import importscan
-import logging
-from types import ModuleType
-from typing import Any, NamedTuple, Mapping, Iterable, Callable, ClassVar
-from dataclasses import dataclass, field
+from typing import Optional
+from logging import Logger
+from horsebox.types import Runner, Workers, Modules, Environ
 from horsebox.utils import environment
+from typeguard import typechecked
+from horsebox.utils import make_logger
 
 
-Runner = Worker = Callable[[Any], Any]
-
-scan_ignore_modules: Iterable[Callable[[str], Any]] = [
+IGNORED_MODULES = [
     re.compile('tests$').search,
     re.compile('testing$').search
 ]
 
 
-class Project(NamedTuple):
-    logger: logging.Logger
-    runner: Runner
-    environ: Mapping[str, str]
-    modules: Iterable[ModuleType]
-    workers: Mapping[str, Worker]
+class Project:
 
-    def scan(self, ignore=scan_ignore_modules):
+    __slots__ = ('logger', 'runner', 'modules', 'workers', 'environ')
+
+    @typechecked
+    def __init__(self,
+                 name: str,
+                 runner: Optional[Runner],
+                 environ: Environ,
+                 modules: Modules,
+                 workers: Workers):
+        self.logger: Logger = make_logger(name)
+        self.runner = runner
+        self.environ = environ
+        self.modules = modules
+        self.workers = workers
+
+    def scan(self, ignore=IGNORED_MODULES):
         for module in self.modules:
             self.logger.info(f"... scanning module {module.__name__!r}")
             importscan.scan(module, ignore=ignore)

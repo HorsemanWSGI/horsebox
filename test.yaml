@@ -1,5 +1,3 @@
 loop: !apply:asyncio.get_event_loop
-
-runners:
-  asyncio: !name:horsebox.builtins.asyncio_loop
-    - !ref <loop>
+runner: !name:horsebox.builtins.asyncio_loop
+  - !ref <loop>

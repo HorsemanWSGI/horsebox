@@ -8,6 +8,4 @@ workers:
     target: !name:horsebox.builtins.asyncio_loop
       - !apply:asyncio.new_event_loop
 
-runners:
-  asyncio: !name:horsebox.builtins.asyncio_loop
-    - !ref <imports[loop]>
+runner: !ref <imports[runner]>
