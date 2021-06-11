@@ -9,52 +9,50 @@ from horsebox.utils import environment
 
 Runner = Worker = Callable[[Any], Any]
 
+scan_ignore_modules: Iterable[Callable[[str], Any]] = [
+    re.compile('tests$').search,
+    re.compile('testing$').search
+]
 
-class Configuration(NamedTuple):
+
+class Project(NamedTuple):
+    logger: logging.Logger
+    runner: Runner
     environ: Mapping[str, str]
     modules: Iterable[ModuleType]
     workers: Mapping[str, Worker]
-    runners: Mapping[str, Runner]
 
-
-@dataclass
-class Project:
-    logger: logging.Logger
-    config: Configuration
-    workers: Iterable[Worker] = field(default_factory=list)
-    scan_ignore_modules: ClassVar[Iterable[Callable[[str], Any]]] = [
-        re.compile('tests$').search,
-        re.compile('testing$').search
-    ]
-
-    def scan(self):
-        for module in self.config.modules:
+    def scan(self, ignore=scan_ignore_modules):
+        for module in self.modules:
             self.logger.info(f"... scanning module {module.__name__!r}")
-            importscan.scan(module, ignore=self.scan_ignore_modules)
+            importscan.scan(module, ignore=ignore)
 
-    def start(self, runner: str, no_worker: bool = False):
-        if (service := self.config.runners.get(runner)) is None:
-            raise NameError(f'Unknown runner {runner!r}.')
-
-        if not no_worker:
-            for name, worker in self.config.workers.items():
+    def start(self):
+        if self.workers:
+            for name, worker in self.workers.items():
                 self.logger.info(f"... worker {name!r} starts")
                 worker.start()
-                self.workers.append(worker)
 
-        if self.config.environ:
+        if self.environ:
             self.logger.info("... setting up environment")
-            with environment(self.config.environ):
-                self.scan()
-                self.logger.info(f"Starting service {runner!r}.")
-                service()
+            with environment(self.environ):
+                if self.modules:
+                    self.scan()
+                self.logger.info(f"Starting service.")
+                self.runner()
         else:
-            self.scan()
-            self.logger.info(f"Starting service {runner!r}.")
-            service()
+            if self.modules:
+                self.scan()
+            self.logger.info(f"Starting service.")
+            self.runner()
 
     def stop(self):
         if self.workers:
             self.logger.info("... Shutting down workers")
-            for worker in self.workers:
-                worker.stop()
+            for name, worker in self.workers.items():
+                if worker.is_alive():
+                    worker.join(1)
+                    self.logger.info(f"Worker {name!r} stopped.")
+                else:
+                    self.logger.info(
+                        f"Worker {name!r} was already stopped.")
