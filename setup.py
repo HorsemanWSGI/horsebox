@@ -8,9 +8,8 @@ install_requires = [
     'colorlog',
     'importscan',
     'minicli',
-    'omegaconf >= 2.1',
-    'rutter',
-    'zope.dottedname',
+    'hyperpyyaml >= 1.0',
+    'rutter'
 ]
 
 test_requires = [
@@ -26,7 +25,7 @@ setup(
     url='http://',
     download_url='http://pypi.python.org/pypi/horsebox',
     description='Deployment utility for WSGI apps',
-    long_description=(open("README.txt").read() + "\n" +
+    long_description=(open("README.rst").read() + "\n" +
                       open(os.path.join("docs", "HISTORY.txt")).read()),
     license='ZPL',
     classifiers=[
@@ -45,7 +44,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'horsebox = horsebox.runner:serve'
+            'horsebox = horsebox.runner:main'
         ],
     },
 )
