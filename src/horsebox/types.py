@@ -62,5 +62,5 @@ Runner = Callable[[], Any]  # A blocking worker that is start by a call
 
 Loader = Callable[[], Any]  # A loader prototype, to bootstrap registries
 # Can be created directly in the config
-# example: !new:my_registry.load
+# example: !name:my_project.my_registry.load
 #   - !apply:pathlib.Path [/tmp/resources]
