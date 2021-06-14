@@ -30,6 +30,13 @@ class Project(ABC):
         """
 
     @abstractclassmethod
+    def check_config(self, config: Mapping[str, Any]) -> Any:
+        """Check a configuration mapping.
+        These checks are project-centric and depends on what your project
+        actually needs to be started.
+        """
+
+    @abstractclassmethod
     def from_config(self, config: Mapping[str, Any]) -> 'Project':
         """Instanciate the project from a configuration mapping.
 
