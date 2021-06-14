@@ -3,7 +3,6 @@ import minicli
 import gc
 from typing import TypeVar
 from hyperpyyaml import load_hyperpyyaml
-from logging import Logger
 from horsebox.types import Project
 from horsebox.project import DefaultProject
 

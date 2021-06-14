@@ -1,12 +1,11 @@
 import re
 import importscan
-import inspect
 from typing import Any, Optional, Dict, List
 from logging import Logger
 from types import ModuleType
 from horsebox.types import Runner, Worker, Project
 from horsebox.utils import environment
-from typeguard import typechecked, check_type
+from typeguard import typechecked
 from horsebox.utils import make_logger
 
 
@@ -38,7 +37,7 @@ class DefaultProject(Project):
     def check_config(cls, config: Dict[str, Any]):
         try:
             cls.from_config(config)
-        except TypeError as exc:
+        except TypeError:
             raise
         else:
             print("Configuration is OK.")
@@ -69,12 +68,12 @@ class DefaultProject(Project):
             with environment(self.environ):
                 if self.modules:
                     self.scan()
-                self.logger.info(f"Starting service.")
+                self.logger.info("Starting service.")
                 self.runner()
         else:
             if self.modules:
                 self.scan()
-            self.logger.info(f"Starting service.")
+            self.logger.info("Starting service.")
             self.runner()
 
     def stop(self):

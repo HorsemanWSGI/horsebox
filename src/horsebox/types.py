@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod, abstractclassmethod
-from inspect import Signature
 from logging import Logger
 from multiprocessing import Process
 from threading import Thread
-from typing import Any, Mapping, Callable, Optional, Union, NoReturn
+from typing import Any, Mapping, Callable, Union, NoReturn
 
 
 class Project(ABC):
