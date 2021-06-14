@@ -1,0 +1,9 @@
+app: !new:flask.Flask
+  - My App
+
+
+runner: !name:bjoern.run
+  host: 0.0.0.0
+  port: 8080
+  reuse_port: true
+  wsgi_app: !ref <app>
