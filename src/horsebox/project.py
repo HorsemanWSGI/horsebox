@@ -55,6 +55,10 @@ class DefaultProject(Project):
             workers=config.get('workers', {}),
         )
 
+    def load(self):
+        for loader in self.loaders:
+            loader()
+
     def scan(self, ignore=IGNORED_MODULES):
         for module in self.modules:
             self.logger.info(f"... scanning module {module.__name__!r}")
@@ -63,8 +67,7 @@ class DefaultProject(Project):
     def start(self):
         if self.loaders:
             self.logger.info("... calling loaders")
-            for loader in self.loaders:
-                loader()
+            self.load()
 
         if self.workers:
             for name, worker in self.workers.items():

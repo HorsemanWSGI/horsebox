@@ -31,4 +31,6 @@ def make_logger(name, level=logging.DEBUG) -> logging.Logger:
 
 
 def apply_middlewares(canonic: Any, middlewares: Iterable[Callable]):
-    return reduce(lambda x, y: y(x), reversed(middlewares), canonic)
+    mw = reduce(lambda x, y: y(x), reversed(middlewares), canonic)
+    mw.__wrapped__ = canonic
+    return mw
