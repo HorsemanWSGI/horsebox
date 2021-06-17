@@ -17,11 +17,13 @@ IGNORED_MODULES = [
 
 class DefaultProject(Project):
 
-    __slots__ = ("logger", "runner", "modules", "workers", "environ")
+    __slots__ = (
+        "logger", "runner", "modules", "workers", "environ", "loaders")
 
     @typechecked
     def __init__(self,
                  name: str,
+                 logger: Optional[Logger],
                  runner: Optional[Runner],
                  environ: Dict[str, str],
                  loaders: List[Loader],
@@ -33,7 +35,9 @@ class DefaultProject(Project):
         self.modules = modules
         self.loaders = loaders
         self.workers = workers
-        self.logger: Logger = make_logger(name)
+        if logger is None:
+            logger: Logger = make_logger(name)
+        self.logger = logger
 
     @classmethod
     def check_config(cls, config: Dict[str, Any]):
@@ -49,7 +53,8 @@ class DefaultProject(Project):
         return cls(
             name=config.get('name', 'Unnamed project'),
             runner=config.get('runner'),
-            environ=config.get('eviron', {}),
+            logger=config.get('logger'),
+            environ=config.get('environ', {}),
             loaders=config.get('loaders', []),
             modules=config.get('modules', []),
             workers=config.get('workers', {}),
