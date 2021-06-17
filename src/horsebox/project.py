@@ -89,7 +89,7 @@ class DefaultProject(Project):
             self.logger.info("... Shutting down workers")
             for name, worker in self.workers.items():
                 if worker.is_alive():
-                    worker.join(1)
+                    worker.join()
                     self.logger.info(f"Worker {name!r} stopped.")
                 else:
                     self.logger.info(
