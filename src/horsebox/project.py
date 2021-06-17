@@ -3,7 +3,7 @@ import importscan
 from typing import Any, Optional, Dict, List
 from logging import Logger
 from types import ModuleType
-from horsebox.types import Runner, Worker, Project
+from horsebox.types import Runner, Worker, Project, Loader
 from horsebox.utils import environment
 from typeguard import typechecked
 from horsebox.utils import make_logger
@@ -24,12 +24,14 @@ class DefaultProject(Project):
                  name: str,
                  runner: Optional[Runner],
                  environ: Dict[str, str],
+                 loaders: List[Loader],
                  modules: List[ModuleType],
                  workers: Dict[str, Worker]):
         self.name = name
         self.runner = runner
         self.environ = environ
         self.modules = modules
+        self.loaders = loaders
         self.workers = workers
         self.logger: Logger = make_logger(name)
 
@@ -48,6 +50,7 @@ class DefaultProject(Project):
             name=config.get('name', 'Unnamed project'),
             runner=config.get('runner'),
             environ=config.get('eviron', {}),
+            loaders=config.get('loaders', []),
             modules=config.get('modules', []),
             workers=config.get('workers', {}),
         )
@@ -58,6 +61,11 @@ class DefaultProject(Project):
             importscan.scan(module, ignore=ignore)
 
     def start(self):
+        if self.loaders:
+            self.logger.info("... calling loaders")
+            for loader in self.loaders:
+                loader()
+
         if self.workers:
             for name, worker in self.workers.items():
                 self.logger.info(f"... worker {name!r} starts")
