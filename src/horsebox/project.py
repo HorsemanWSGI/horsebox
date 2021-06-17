@@ -23,12 +23,12 @@ class DefaultProject(Project):
     @typechecked
     def __init__(self,
                  name: str,
-                 logger: Optional[Logger],
-                 runner: Optional[Runner],
                  environ: Dict[str, str],
                  loaders: List[Loader],
                  modules: List[ModuleType],
-                 workers: Dict[str, Worker]):
+                 workers: Dict[str, Worker],
+                 logger: Optional[Logger] = None,
+                 runner: Optional[Runner] = None):
         self.name = name
         self.runner = runner
         self.environ = environ
