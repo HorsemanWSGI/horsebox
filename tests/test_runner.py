@@ -1,4 +1,3 @@
-import logging
 import pytest
 from horsebox.runner import get_project
 from horsebox.types import Project
