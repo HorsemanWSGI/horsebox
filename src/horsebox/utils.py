@@ -1,36 +1,35 @@
 import os
 import re
-import colorlog
 import contextlib
-import logging
 import importscan
+from loguru import logger
 from functools import reduce
 from types import ModuleType
-from typing import Iterable, Callable, Any
+from typing import Iterable, Callable, Any, Optional, Dict
+from horsebox.types import OSEnviron
 
 
-@contextlib.contextmanager
-def environment(environ: dict):
+class environment(contextlib.ContextDecorator):
     """Temporarily set the process environment variables.
     """
-    old_environ = dict(os.environ)
-    os.environ.update(dict(environ))
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(old_environ)
+    __slots__ = ('environ',)
 
+    def __init__(self, environ: Optional[OSEnviron] = None):
+        self.environ = environ
 
-def make_logger(name, level=logging.DEBUG) -> logging.Logger:
-    logger = colorlog.getLogger(name)
-    logger.setLevel(level)
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(colorlog.ColoredFormatter(
-        '%(red)s%(levelname)-8s%(reset)s '
-        '%(yellow)s[%(name)s]%(reset)s %(green)s%(message)s'))
-    logger.addHandler(handler)
-    return logger
+    def __enter__(self):
+        if self.environ is not None:
+            logger.info("... setting up environment")
+            self.environ = dict(os.environ)
+            os.environ.update(dict(self.environ))
+        return self
+
+    def __exit__(self, *exc):
+        if self.environ is not None:
+            logger.info("... restoring environment")
+            os.environ.clear()
+            os.environ.update(self.environ)
+        return False
 
 
 def apply_middlewares(canonic: Any, middlewares: Iterable[Callable]):

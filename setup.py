@@ -5,9 +5,9 @@ from setuptools import setup, find_packages
 version = "0.1"
 
 install_requires = [
-    'colorlog',
     'hyperpyyaml >= 1.0',
     'importscan',
+    'loguru',
     'minicli',
     'rutter',
     'typeguard',

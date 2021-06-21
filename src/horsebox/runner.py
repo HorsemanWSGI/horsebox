@@ -1,10 +1,41 @@
 import pathlib
 import minicli
 import gc
+import logging
+from loguru import logger
 from typing import Any, TypeVar, Mapping
 from hyperpyyaml import load_hyperpyyaml
 from horsebox.types import Project
 from horsebox.project import DefaultProject
+
+
+LOGGING_LEVELS = {
+    'critical': logging.CRITICAL,
+    'error': logging.ERROR,
+    'warning': logging.WARNING,
+    'info': logging.INFO,
+    'debug': logging.DEBUG
+}
+
+
+class InterceptHandler(logging.Handler):
+
+    def emit(self, record):
+        # Get corresponding Loguru level if it exists
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+
+        # Find caller from where originated the logged message
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+
+        logger.opt(
+            depth=depth, exception=record.exc_info).log(
+                level, record.getMessage())
 
 
 def get_project(config: Mapping[Any, Any]) -> Project:
@@ -29,7 +60,13 @@ def check(configfile: pathlib.Path):
 
 
 @minicli.cli
-def run(configfile: pathlib.Path):
+@minicli.cli('loglevel', choices=list(LOGGING_LEVELS.keys()))
+def run(configfile: pathlib.Path, loglevel: str = 'info'):
+
+    logging.basicConfig(
+        handlers=[InterceptHandler()],
+        level=LOGGING_LEVELS[loglevel]
+    )
 
     with configfile.open('r') as f:
         config: dict = load_hyperpyyaml(f)
@@ -41,14 +78,14 @@ def run(configfile: pathlib.Path):
     del config
     gc.collect()
 
-    project.logger.info('Horsebox is starting...')
+    logger.info('Horsebox is starting...')
     try:
         project.start()
     except KeyboardInterrupt:
-        project.logger.info('Horsebox is shutting down...')
+        logger.info('Horsebox is shutting down...')
     finally:
         project.stop()
-    project.logger.info('Horsebox stopped. Goodbye.')
+    logger.info('Horsebox stopped. Goodbye.')
 
 
 def main():
