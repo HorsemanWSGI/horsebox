@@ -27,6 +27,7 @@ class TestDefaultProject:
             loaders=[],
             workers={}
         )
+        assert project.name == 'My project'
 
     def test_type_checking(self):
         with pytest.raises(TypeError) as exc:

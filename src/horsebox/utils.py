@@ -5,7 +5,7 @@ import importscan
 from loguru import logger
 from functools import reduce
 from types import ModuleType
-from typing import Iterable, Callable, Any, Optional, Dict
+from typing import Iterable, Callable, Any, Optional
 from horsebox.types import OSEnviron
 
 
