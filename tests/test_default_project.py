@@ -18,10 +18,6 @@ class TestDefaultProject:
         assert str(exc.value) == "missing a required argument: 'loaders'"
 
         with pytest.raises(TypeError) as exc:
-            DefaultProject('My project', environ={}, loaders=[])
-        assert str(exc.value) == "missing a required argument: 'modules'"
-
-        with pytest.raises(TypeError) as exc:
             DefaultProject('My project', environ={}, loaders=[], modules=[])
         assert str(exc.value) == "missing a required argument: 'workers'"
 
@@ -29,7 +25,6 @@ class TestDefaultProject:
             'My project',
             environ={},
             loaders=[],
-            modules=[],
             workers={}
         )
 
@@ -39,7 +34,6 @@ class TestDefaultProject:
                 'My project',
                 environ=[],
                 loaders=[],
-                modules={},
                 workers={}
             )
         assert str(exc.value) == (
@@ -50,7 +44,6 @@ class TestDefaultProject:
                 'My project',
                 environ={},
                 loaders=[],
-                modules=[],
                 workers=[]
             )
         assert str(exc.value) == (
@@ -61,7 +54,6 @@ class TestDefaultProject:
                 'My project',
                 environ={},
                 loaders=[],
-                modules=[],
                 workers={'test': object}
             )
         assert str(exc.value) == (

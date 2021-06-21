@@ -1,18 +1,9 @@
-import re
-import importscan
 from typing import Any, Optional, Dict, List
 from logging import Logger
-from types import ModuleType
 from horsebox.types import Runner, Worker, Project, Loader
 from horsebox.utils import environment
 from typeguard import typechecked
 from horsebox.utils import make_logger
-
-
-IGNORED_MODULES = [
-    re.compile("tests$").search,
-    re.compile("testing$").search
-]
 
 
 class DefaultProject(Project):
@@ -25,14 +16,12 @@ class DefaultProject(Project):
                  name: str,
                  environ: Dict[str, str],
                  loaders: List[Loader],
-                 modules: List[ModuleType],
                  workers: Dict[str, Worker],
                  logger: Optional[Logger] = None,
                  runner: Optional[Runner] = None):
         self.name = name
         self.runner = runner
         self.environ = environ
-        self.modules = modules
         self.loaders = loaders
         self.workers = workers
         if logger is None:
@@ -56,18 +45,12 @@ class DefaultProject(Project):
             logger=config.get('logger'),
             environ=config.get('environ', {}),
             loaders=config.get('loaders', []),
-            modules=config.get('modules', []),
             workers=config.get('workers', {}),
         )
 
     def load(self):
         for loader in self.loaders:
             loader()
-
-    def scan(self, ignore=IGNORED_MODULES):
-        for module in self.modules:
-            self.logger.info(f"... scanning module {module.__name__!r}")
-            importscan.scan(module, ignore=ignore)
 
     def start(self):
         if self.loaders:
@@ -87,8 +70,6 @@ class DefaultProject(Project):
                 self.logger.info("Starting service.")
                 self.runner()
         else:
-            if self.modules:
-                self.scan()
             self.logger.info("Starting service.")
             self.runner()
 

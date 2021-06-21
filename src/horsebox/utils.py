@@ -1,8 +1,11 @@
 import os
+import re
 import colorlog
 import contextlib
 import logging
+import importscan
 from functools import reduce
+from types import ModuleType
 from typing import Iterable, Callable, Any
 
 
@@ -34,3 +37,14 @@ def apply_middlewares(canonic: Any, middlewares: Iterable[Callable]):
     mw = reduce(lambda x, y: y(x), reversed(middlewares), canonic)
     mw.__wrapped__ = canonic
     return mw
+
+
+IGNORED_MODULES = [
+    re.compile("tests$").search,
+    re.compile("testing$").search
+]
+
+
+def modules_loader(*modules: ModuleType):
+    for module in modules:
+        importscan.scan(module, ignore=IGNORED_MODULES)

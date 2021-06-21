@@ -38,7 +38,6 @@ class TestProjectExtraction:
         assert isinstance(project, DefaultProject)
         assert project.runner is None
         assert project.loaders == []
-        assert project.modules == []
         assert project.workers == {}
 
         # An empty conf creates a logger by default
