@@ -60,3 +60,27 @@ class TestDefaultProject:
         assert str(exc.value) == (
             '''type of argument "workers"['test'] must be one of '''
             '''(Process, Thread); got object instead''')
+
+    def test_type_environ(self):
+        with pytest.raises(TypeError) as exc:
+            DefaultProject(
+                'My project',
+                environ={'test': 1},
+                loaders=[],
+                workers={}
+            )
+        assert str(exc.value) == (
+            '''type of argument "environ"['test'] must be str; '''
+            '''got int instead''')
+
+        with pytest.raises(TypeError) as exc:
+            DefaultProject(
+                'My project',
+                environ={1: 'test'},
+                loaders=[],
+                workers={}
+            )
+        assert str(exc.value) == (
+            '''type of keys of argument "environ" must be str; '''
+            '''got int instead'''
+        )
