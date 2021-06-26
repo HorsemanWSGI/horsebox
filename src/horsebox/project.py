@@ -1,15 +1,13 @@
-from typing import Any, Optional, Dict, List
-from logging import Logger
 from horsebox.types import Runner, Worker, Project, Loader
 from horsebox.utils import environment
+from loguru import logger
 from typeguard import typechecked
-from horsebox.utils import make_logger
+from typing import Any, Optional, Dict, List
 
 
 class DefaultProject(Project):
 
-    __slots__ = (
-        "logger", "runner", "modules", "workers", "environ", "loaders")
+    __slots__ = ("environ", "loaders", "runner", "workers")
 
     @typechecked
     def __init__(self,
@@ -17,16 +15,12 @@ class DefaultProject(Project):
                  environ: Dict[str, str],
                  loaders: List[Loader],
                  workers: Dict[str, Worker],
-                 logger: Optional[Logger] = None,
                  runner: Optional[Runner] = None):
         self.name = name
         self.runner = runner
         self.environ = environ
         self.loaders = loaders
         self.workers = workers
-        if logger is None:
-            logger: Logger = make_logger(name)
-        self.logger = logger
 
     @classmethod
     def check_config(cls, config: Dict[str, Any]):
@@ -42,44 +36,36 @@ class DefaultProject(Project):
         return cls(
             name=config.get('name', 'Unnamed project'),
             runner=config.get('runner'),
-            logger=config.get('logger'),
             environ=config.get('environ', {}),
             loaders=config.get('loaders', []),
             workers=config.get('workers', {}),
         )
 
-    def load(self):
-        for loader in self.loaders:
-            loader()
-
     def start(self):
-        if self.loaders:
-            self.logger.info("... calling loaders")
-            self.load()
 
-        if self.workers:
-            for name, worker in self.workers.items():
-                self.logger.info(f"... worker {name!r} starts")
-                worker.start()
+        @environment(self.environ)
+        def project_runner():
+            if self.loaders:
+                logger.info("... calling loaders")
+                for loader in self.loaders:
+                    loader()
 
-        if self.environ:
-            self.logger.info("... setting up environment")
-            with environment(self.environ):
-                if self.modules:
-                    self.scan()
-                self.logger.info("Starting service.")
-                self.runner()
-        else:
-            self.logger.info("Starting service.")
+            if self.workers:
+                for name, worker in self.workers.items():
+                    logger.info(f"... worker {name!r} starts")
+                    worker.start()
+
+            logger.info("Starting service.")
             self.runner()
+
+        return project_runner()
 
     def stop(self):
         if self.workers:
-            self.logger.info("... Shutting down workers")
+            logger.info("... Shutting down workers")
             for name, worker in self.workers.items():
                 if worker.is_alive():
                     worker.join()
-                    self.logger.info(f"Worker {name!r} stopped.")
+                    logger.info(f"Worker {name!r} stopped.")
                 else:
-                    self.logger.info(
-                        f"Worker {name!r} was already stopped.")
+                    logger.info(f"Worker {name!r} was already stopped.")

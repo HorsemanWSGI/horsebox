@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod, abstractclassmethod
 from logging import Logger
 from multiprocessing import Process
 from threading import Thread
-from typing import Any, Mapping, Callable, Union, NoReturn
+from typing import Any, Mapping, Callable, Union, NoReturn, Dict
 
 
 class Project(ABC):
@@ -46,6 +46,9 @@ class Project(ABC):
 
 # A few basic useful types.
 # -------------------------
+
+OSEnviron = Dict[str, str]  # A mapping of os environ variables.
+
 
 Worker = Union[Process, Thread]  # non-block worker with a start/join API
 # Can be created directly in the config

@@ -1,4 +1,3 @@
-import logging
 import pytest
 from horsebox.runner import get_project
 from horsebox.types import Project
@@ -7,8 +6,8 @@ from horsebox.project import DefaultProject
 
 class MyProject(Project):
 
-    def __init__(self, logger):
-        self.logger = logger
+    def __init__(self, name: str):
+        self.name = name
 
     def start(self):
         pass
@@ -18,17 +17,16 @@ class MyProject(Project):
 
     @classmethod
     def check_config(cls, config):
-        if logger := config.get('logger'):
-            if isinstance(logger, logging.Logger):
+        if name := config.get('name'):
+            if isinstance(name, str):
                 return True
         raise KeyError(
-            "Expecting key `logger` with an instance of "
-            "`logging.Logger` as a value.")
+            "Expecting key `name` with a str type value.")
 
     @classmethod
     def from_config(cls, config):
         cls.check_config(config)
-        return cls(config['logger'])
+        return cls(config['name'])
 
 
 class TestProjectExtraction:
@@ -40,19 +38,16 @@ class TestProjectExtraction:
         assert project.loaders == []
         assert project.workers == {}
 
-        # An empty conf creates a logger by default
-        assert project.logger is not None
-        assert project.logger.name == 'Unnamed project'
-        assert project.logger.level == logging.DEBUG
+        # An empty conf creates a name by default
+        assert project.name == 'Unnamed project'
 
     def test_custom_project(self):
         project = get_project({
             'project': MyProject,
-            'logger': logging.getLogger('My Project')
+            'name': 'My Project'
         })
         assert isinstance(project, MyProject)
-        assert project.logger is not None
-        assert project.logger.name == 'My Project'
+        assert project.name == 'My Project'
 
     def test_custom_project_wrong_class(self):
         with pytest.raises(TypeError) as exc:
@@ -65,6 +60,5 @@ class TestProjectExtraction:
         with pytest.raises(KeyError) as exc:
             get_project({'project': MyProject})
         assert str(exc.value) == (
-            "'Expecting key `logger` with an instance of "
-            "`logging.Logger` as a value.'"
+            "'Expecting key `name` with a str type value.'"
         )
