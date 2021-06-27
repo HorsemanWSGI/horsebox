@@ -1,2 +1,0 @@
-loop: !apply:asyncio.get_event_loop
-runner: test
