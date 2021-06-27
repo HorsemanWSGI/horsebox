@@ -9,12 +9,12 @@ install_requires = [
     'importscan',
     'loguru',
     'minicli',
-    'rutter',
     'typeguard',
 ]
 
 test_requires = [
     'pytest',
+    'pytest-coverage',
 ]
 
 
